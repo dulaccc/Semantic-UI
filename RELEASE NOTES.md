@@ -1,10 +1,149 @@
 ## RELEASE NOTES
 
+### Version 0.6.5 - Oct 18, 2013
+
+**Fixes**
+- Fixes issue where browser default action, like link clicking, was prevented on dropdown item click
+- Modal keyboard shortcuts now obey settings.closable (credit to luisrudge)
+
+
+### Version 0.6.4 - Oct 16, 2013
+
+**Fixes**
+- Fixes issue where browser default action, like link clicking, was prevented on dropdown item click
+
+### Version 0.6.3 - Oct 15, 2013
+
+**Deprecation**
+- Dropdown changeText and updateForm have been deprecated and will be removed in 1.0
+
+**Updates**
+- Dropdown hide no longer selects current item as active (useful for menus)
+- Simplified possible dropdown actions changeText and updateForm are now consolidated into activate which is the new default
+
+### Version 0.6.2 - Oct 15, 2013
+
+**Fixes**
+- Fixes touch+mouse like touchscreen laptops to work with dropdowns
+- Fixes input position inside menus with no other content
+- Fixes input sizing on small/large menus
+
+**Updates**
+- Dropdown vastly improved for touch, now can scroll with touch without closing dropdown
+- Dropdown active style now slightly more noticable
+
+### Version 0.6.1 - Oct 15, 2013
+
+**Updates**
+- Adds onApprove/onDeny callbacks to modal
+- Adds small/large sizing of modal, reformats default modal size to be slightly inset from page grid
+- Adds clockwise/counterclockwise rotated icon and default rotate
+- Adds orange label/segment
+- Adds automatic menu formatting for buttons inside menus
+- Dropdowns in vertical menu automatically receive proper triangle pointer direction
+
+**Fixes**
+- Fixes modal spacing on left/right content to match up with grid gutters
+- Fixes inheritance issues with rotated icon
+- Fixes tests not passing for modal/dimmer
+- Fixes overflow on item corner label
+- Fixes right menu formatting in secondary menus
+- Fixed shadow overlap on dropdown in menus
+
+### Version 0.6.0 - Oct 14, 2013
+
+**Updates**
+- Adds travis CI support with preliminary test coverage for all javascript modules
+
+**Fixes**
+- Minor Fixes caught with testing suite, related to ensuring proper destroy, init,
+- Minor fixes to edge cases with seting and retrieving internals/settings as default, init, or during run-time on some modules
+
+### Version 0.5.1 - Oct 11, 2013
+
+**Fixes**
+- Fixes issue with modal sometimes closing/opening multiple times caused by changes in 0.5.0
+
+**Updates**
+- Fixes vertical alignment of checkboxes
+
+### Version 0.5.0 - Oct 10, 2013
+
+**Critical Fixes**
+- Fixes in some UI modules, issue where settings being shared across elements initialized at the same time instead of each instance.
+- Fixes regression where popup was overriding variation class name on positioning
+
+**Fixes**
+- Fixes an issue where popup that was set to inline: false was being removed prematurely
+- Fixes inheritance issue where grid column may sometimes not appear the correct size
+- Fixes modal hide/show dependency issue where dimmer would not always hide modal and vice-versa
+
+**Updates**
+- Adds an example to popup where inline is set to false
+- Accordion now comes bundled with proper easing
+- Added onCreate to popup module
+
+### Version 0.4.3 - Oct 10, 2013
+
+**Fixes**
+- Updates dropdown to include proper invoke
+
+### Version 0.4.2 - Oct 9, 2013
+
+**Fixes**
+- Fixes issue with event bubbling being cancelled on dropdown item click
+
+### Version 0.4.1 - Oct 9, 2013
+
+**Fixes**
+- Fixes heart rating color
+
+### Version 0.4.0 - Oct 8, 2013
+
+**Updates**
+- Updated some checkbox stylings
+- Checkboxes markup now more semantic with default markup including only one label tag that can be inside ui checkbox
+
+### Version 0.3.8 - Oct 8, 2013
+
+**Fixes**
+- Display issues with accordion
+
+### Version 0.3.7 - Oct 8, 2013
+
+**Fixes**
+- Fixes modal show/hide action reversal in Webkit
+
+**Updates**
+- Dimmer can now take different durations for its show and hide
+
+### Version 0.3.6 - Oct 7, 2013
+
+**Fixes**
+- Fixes popup position sometimes appearing off-stage on second apperance
+- Fixes popup positions top left, top right, bottom left, bottom right being flipped
+
+**Docs**
+- Updates form and accordion docs
+
+**Updates**
+- Dropdown action default is now automatically determined based on type of dropdown, select dropdowns now will update form fields with default options
+- Adds fluid variation to accordion
+- Adds more html5 form support for forms (deneuxa)
+- Fields can include both field and another level of fields
+
+### Version 0.3.5 - Oct 2, 2013
+
+**Fixes**
+- Fixes radio checkboxes (again)
+- Fixes header content display in icon headers
+
 ### Version 0.3.4 - Oct 2, 2013
 
 **Fixes**
 - Transitions now work in Safari versions that do not support animation-direction
 - Fixes accordion in safari styles getting stuck
+- Centering of content in icon header
 
 ### Version 0.3.3 - Oct 2, 2013
 

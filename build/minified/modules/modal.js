@@ -17,19 +17,6 @@ $.fn.modal = function(parameters) {
     $window     = $(window),
     $document   = $(document),
 
-    settings    = ( $.isPlainObject(parameters) )
-      ? $.extend(true, {}, $.fn.modal.settings, parameters)
-      : $.fn.modal.settings,
-
-    selector        = settings.selector,
-    className       = settings.className,
-    namespace       = settings.namespace,
-    error           = settings.error,
-
-    eventNamespace  = '.' + namespace,
-    moduleNamespace = 'module-' + namespace,
-    moduleSelector  = $allModules.selector || '',
-
     time            = new Date().getTime(),
     performance     = [],
 
@@ -44,12 +31,26 @@ $.fn.modal = function(parameters) {
   $allModules
     .each(function() {
       var
+        settings    = ( $.isPlainObject(parameters) )
+          ? $.extend(true, {}, $.fn.modal.settings, parameters)
+          : $.extend({}, $.fn.modal.settings),
+
+        selector        = settings.selector,
+        className       = settings.className,
+        namespace       = settings.namespace,
+        error           = settings.error,
+
+        eventNamespace  = '.' + namespace,
+        moduleNamespace = 'module-' + namespace,
+        moduleSelector  = $allModules.selector || '',
+
         $module      = $(this),
         $context     = $(settings.context),
         $otherModals = $allModules.not($module),
         $close       = $module.find(selector.close),
 
         $focusedElement,
+        $dimmable,
         $dimmer,
 
         element      = this,
@@ -62,8 +63,15 @@ $.fn.modal = function(parameters) {
         initialize: function() {
           module.verbose('Initializing dimmer', $context);
 
-          $dimmer = $context
+          $dimmable = $context
+            .dimmer({
+              closable : false,
+              show     : settings.duration * 0.95,
+              hide     : settings.duration * 1.05
+            })
             .dimmer('add content', $module)
+          ;
+          $dimmer = $dimmable
             .dimmer('get dimmer')
           ;
 
@@ -90,7 +98,14 @@ $.fn.modal = function(parameters) {
         destroy: function() {
           module.verbose('Destroying previous modal');
           $module
+            .removeData(moduleNamespace)
             .off(eventNamespace)
+          ;
+          $close
+            .off(eventNamespace)
+          ;
+          $context
+            .dimmer('destroy')
           ;
         },
 
@@ -107,7 +122,7 @@ $.fn.modal = function(parameters) {
           ;
           event = $.isFunction(module[event])
             ? module[event]
-            : module.show
+            : module.toggle
           ;
           if($toggle.size() > 0) {
             module.debug('Attaching modal events to element', selector, event);
@@ -123,8 +138,21 @@ $.fn.modal = function(parameters) {
 
         event: {
           close: function() {
-            module.verbose('Close button pressed');
-            $context.dimmer('hide');
+            module.verbose('Closing element pressed');
+            if( $(this).is(selector.approve) ) {
+              $.proxy(settings.onApprove, element)();
+            }
+            if( $(this).is(selector.deny) ) {
+              $.proxy(settings.onDeny, element)();
+            }
+            module.hide();
+          },
+          click: function(event) {
+            module.verbose('Determining if event occured on dimmer', event);
+            if( $dimmer.find(event.target).size() === 0 ) {
+              module.hide();
+              event.stopImmediatePropagation();
+            }
           },
           debounce: function(method, delay) {
             clearTimeout(module.timer);
@@ -136,13 +164,18 @@ $.fn.modal = function(parameters) {
               escapeKey = 27
             ;
             if(keyCode == escapeKey) {
-              module.debug('Escape key pressed hiding modal');
-              $context.dimmer('hide');
+              if(settings.closable) {
+                module.debug('Escape key pressed hiding modal');
+                module.hide();
+              }
+              else {
+                module.debug('Escape key pressed, but closable is set to false');
+              }
               event.preventDefault();
             }
           },
           resize: function() {
-            if( $context.dimmer('is active') ) {
+            if( $dimmable.dimmer('is active') ) {
               module.refresh();
             }
           }
@@ -164,20 +197,12 @@ $.fn.modal = function(parameters) {
           module.hideAll();
           if(settings.transition && $.fn.transition !== undefined) {
             $module
-              .transition(settings.transition + ' in', settings.duration, function() {
-                module.set.active();
-                module.save.focus();
-                module.set.type();
-              })
+              .transition(settings.transition + ' in', settings.duration, module.set.active)
             ;
           }
           else {
             $module
-              .fadeIn(settings.duration, settings.easing, function() {
-                module.set.active();
-                module.save.focus();
-                module.set.type();
-              })
+              .fadeIn(settings.duration, settings.easing, module.set.active)
             ;
           }
           module.debug('Triggering dimmer');
@@ -186,19 +211,35 @@ $.fn.modal = function(parameters) {
 
         showDimmer: function() {
           module.debug('Showing modal');
-          module.set.dimmerSettings();
-          $context.dimmer('show');
-        },
-        hideDimmer: function() {
-          $context.dimmer('hide');
+          $dimmable.dimmer('show');
         },
 
         hide: function() {
+          if(settings.closable) {
+            $dimmer
+              .off('click' + eventNamespace)
+            ;
+          }
+          if( $dimmable.dimmer('is active') ) {
+            $dimmable.dimmer('hide');
+          }
+          if( module.is.active() ) {
+            module.hideModal();
+            $.proxy(settings.onHide, element)();
+          }
+          else {
+            module.debug('Cannot hide modal, modal is not visible');
+          }
+        },
+
+        hideDimmer: function() {
+          module.debug('Hiding dimmer');
+          $dimmable.dimmer('hide');
+        },
+
+        hideModal: function() {
           module.debug('Hiding modal');
-          // remove keyboard detection
-          $document
-            .off('keyup.' + namespace)
-          ;
+          module.remove.keyboardShortcuts();
           if(settings.transition && $.fn.transition !== undefined) {
             $module
               .transition(settings.transition + ' out', settings.duration, function() {
@@ -215,7 +256,6 @@ $.fn.modal = function(parameters) {
               })
             ;
           }
-          $.proxy(settings.onHide, element)();
         },
 
         hideAll: function() {
@@ -242,7 +282,9 @@ $.fn.modal = function(parameters) {
 
         restore: {
           focus: function() {
-          $focusedElement.focus();
+            if($focusedElement.size() > 0) {
+              $focusedElement.focus();
+            }
           }
         },
 
@@ -257,7 +299,7 @@ $.fn.modal = function(parameters) {
             ;
           },
           scrolling: function() {
-            $dimmer.removeClass(className.scrolling);
+            $dimmable.removeClass(className.scrolling);
             $module.removeClass(className.scrolling);
           }
         },
@@ -267,7 +309,7 @@ $.fn.modal = function(parameters) {
             height        : $module.outerHeight() + settings.offset,
             contextHeight : (settings.context == 'body')
               ? $(window).height()
-              : $context.height()
+              : $dimmable.height()
           };
           module.debug('Caching modal and container sizes', module.cache);
         },
@@ -286,24 +328,20 @@ $.fn.modal = function(parameters) {
 
         set: {
           active: function() {
-            $module.addClass(className.active);
-          },
-          dimmerSettings: function() {
-            module.debug('Setting dimmer settings', settings.closable);
-            $context
-              .dimmer('setting', 'closable', settings.closable)
-              .dimmer('setting', 'duration', settings.duration)
-              .dimmer('setting', 'onShow' , module.add.keyboardShortcuts)
-              .dimmer('setting', 'onHide', function() {
-                module.hide();
-                module.remove.keyboardShortcuts();
-              })
-              .dimmer('destroy')
-              .dimmer('initialize')
+            module.add.keyboardShortcuts();
+            module.save.focus();
+            module.set.type();
+            $module
+              .addClass(className.active)
             ;
+            if(settings.closable) {
+              $dimmer
+                .on('click' + eventNamespace, module.event.click)
+              ;
+            }
           },
           scrolling: function() {
-            $dimmer.addClass(className.scrolling);
+            $dimmable.addClass(className.scrolling);
             $module.addClass(className.scrolling);
           },
           type: function() {
@@ -533,9 +571,13 @@ $.fn.modal.settings = {
 
   onShow      : function(){},
   onHide      : function(){},
+  onApprove   : function(){},
+  onDeny      : function(){},
 
   selector    : {
-    close : '.close, .actions .button'
+    close    : '.close, .actions .button',
+    approve  : '.actions .positive, .actions .approve',
+    deny     : '.actions .negative, .actions .cancel'
   },
   error : {
     method : 'The method you called is not defined.'

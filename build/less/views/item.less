@@ -70,11 +70,11 @@
   -webkit-border-radius: 0.33em;
   border-radius: 0.33em;
 
-  -webkit-transition: all 0.2s ease;
-  -moz-transition: all 0.2s ease;
-  -o-transition: all 0.2s ease;
-  -ms-transition: all 0.2s ease;
-  transition: all 0.2s ease;
+  -webkit-transition: box-shadow 0.2s ease;
+  -moz-transition: box-shadow 0.2s ease;
+  -o-transition: box-shadow 0.2s ease;
+  -ms-transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease;
 
   padding: 0.5em;
 }
@@ -110,24 +110,14 @@
   -ms-box-sizing: border-box;
   box-sizing: border-box;
 
-  -webkit-box-shadow: 0px 0px 0px 1px rbga(0, 0, 0, 0.1);
-  -moz-box-shadow: 0px 0px 0px 1px rbga(0, 0, 0, 0.1);
-  box-shadow: 0px 0px 0px 1px rbga(0, 0, 0, 0.1);
-
   -webkit-border-radius: 0.2em;
   -moz-border-radius: 0.2em;
   border-radius: 0.2em;
 }
 .ui.items .item > .image > img {
-  position: relative;
   display: block;
   width: 100%;
-  overflow: hidden;
-  -webkit-border-radius: 0.2em;
-  -moz-border-radius: 0.2em;
-  border-radius: 0.2em;
 }
-
 
 
 /*--------------
@@ -428,7 +418,6 @@
   }
   .ui.stackable.items > .item,
   .ui.stackable.items > .row > .item {
-    margin: 0em 2em 1em !important;
     display: block !important;
     height: auto !important;
     width: auto !important;

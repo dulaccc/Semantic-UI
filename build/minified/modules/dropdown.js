@@ -8,51 +8,51 @@
  * http://opensource.org/licenses/MIT
  *
  */
-
 ;(function ( $, window, document, undefined ) {
 
 $.fn.dropdown = function(parameters) {
-  var
-    $allModules = $(this),
-    $document   = $(document),
+    var
+    $allModules    = $(this),
+    $document      = $(document),
 
-    settings    = ( $.isPlainObject(parameters) )
-      ? $.extend(true, {}, $.fn.dropdown.settings, parameters)
-      : $.fn.dropdown.settings,
+    moduleSelector = $allModules.selector || '',
 
-    className         = settings.className,
-    metadata          = settings.metadata,
-    namespace         = settings.namespace,
-    selector          = settings.selector,
-    error             = settings.error,
+    hasTouch       = ('ontouchstart' in document.documentElement),
+    time           = new Date().getTime(),
+    performance    = [],
 
-    eventNamespace    = '.' + namespace,
-    dropdownNamespace = 'module-' + namespace,
-    dropdownSelector  = $allModules.selector || '',
-
-    time              = new Date().getTime(),
-    performance       = [],
-
-    query             = arguments[0],
-    methodInvoked     = (typeof query == 'string'),
-    queryArguments    = [].slice.call(arguments, 1),
+    query          = arguments[0],
+    methodInvoked  = (typeof query == 'string'),
+    queryArguments = [].slice.call(arguments, 1),
     invokedResponse
   ;
 
   $allModules
     .each(function() {
       var
-        $module       = $(this),
-        $item         = $module.find(selector.item),
-        $text         = $module.find(selector.text),
-        $input        = $module.find(selector.input),
+        settings          = ( $.isPlainObject(parameters) )
+          ? $.extend(true, {}, $.fn.dropdown.settings, parameters)
+          : $.extend({}, $.fn.dropdown.settings),
 
-        $menu         = $module.children(selector.menu),
+        className       = settings.className,
+        metadata        = settings.metadata,
+        namespace       = settings.namespace,
+        selector        = settings.selector,
+        error           = settings.error,
 
-        isTouchDevice = ('ontouchstart' in document.documentElement),
+        eventNamespace  = '.' + namespace,
+        moduleNamespace = 'module-' + namespace,
 
-        element       = this,
-        instance      = $module.data(dropdownNamespace),
+        $module         = $(this),
+        $item           = $module.find(selector.item),
+        $text           = $module.find(selector.text),
+        $input          = $module.find(selector.input),
+
+        $menu           = $module.children(selector.menu),
+
+
+        element         = this,
+        instance        = $module.data(moduleNamespace),
         module
       ;
 
@@ -60,42 +60,27 @@ $.fn.dropdown = function(parameters) {
 
         initialize: function() {
           module.debug('Initializing dropdown', settings);
-          if(isTouchDevice) {
-            $module
-              .on('touchstart' + eventNamespace, module.event.test.toggle)
-            ;
+
+          module.set.selected();
+
+          // no use detecting mouse events because touch devices emulate them
+          if(hasTouch) {
+            module.bind.touchEvents();
           }
-          else if(settings.on == 'click') {
-            $module
-              .on('click' + eventNamespace, module.event.test.toggle)
-            ;
-          }
-          else if(settings.on == 'hover') {
-            $module
-              .on('mouseenter' + eventNamespace, module.delay.show)
-              .on('mouseleave' + eventNamespace, module.delay.hide)
-            ;
-          }
-          else {
-            $module
-              .on(settings.on + eventNamespace, module.toggle)
-            ;
-          }
-          if(settings.action == 'updateForm') {
-            module.set.selected();
-          }
-          $item
-            .on('mouseenter' + eventNamespace, module.event.item.mouseenter)
-            .on('mouseleave' + eventNamespace, module.event.item.mouseleave)
-            .on(module.get.selectEvent() + eventNamespace, module.event.item.click)
+          module.bind.mouseEvents();
+
+          $document
+            .one('mousemove' + eventNamespace, module.set.hasMouse)
           ;
+
           module.instantiate();
         },
 
         instantiate: function() {
           module.verbose('Storing instance of dropdown', module);
+          instance = module;
           $module
-            .data(dropdownNamespace, module)
+            .data(moduleNamespace, module)
           ;
         },
 
@@ -106,20 +91,90 @@ $.fn.dropdown = function(parameters) {
           ;
           $module
             .off(eventNamespace)
-            .removeData(dropdownNamespace)
+            .removeData(moduleNamespace)
           ;
         },
 
-        event: {
-
-          stopPropagation: function(event) {
-            event.stopPropagation();
+        bind: {
+          touchEvents: function() {
+            module.debug('Touch device detected binding touch events');
+            $module
+              .on('touchstart' + eventNamespace, module.event.test.toggle)
+            ;
+            $item
+              .on('touchstart' + eventNamespace, module.event.item.mouseenter)
+              .on('touchstart' + eventNamespace, module.event.item.click)
+            ;
           },
+          mouseEvents: function() {
+            module.verbose('Mouse detected binding mouse events');
+            if(settings.on == 'click') {
+              $module
+                .on('click' + eventNamespace, module.event.test.toggle)
+              ;
+            }
+            else if(settings.on == 'hover') {
+              $module
+                .on('mouseenter' + eventNamespace, module.delay.show)
+                .on('mouseleave' + eventNamespace, module.delay.hide)
+              ;
+            }
+            else {
+              $module
+                .on(settings.on + eventNamespace, module.toggle)
+              ;
+            }
+            $item
+              .on('mouseenter' + eventNamespace, module.event.item.mouseenter)
+              .on('mouseleave' + eventNamespace, module.event.item.mouseleave)
+              .on('click'      + eventNamespace, module.event.item.click)
+            ;
+          },
+          intent: function() {
+            module.verbose('Binding hide intent event to document');
+            if(hasTouch) {
+              $document
+                .on('touchstart' + eventNamespace, module.event.test.touch)
+                .on('touchmove'  + eventNamespace, module.event.test.touch)
+              ;
+            }
+            $document
+              .on('click' + eventNamespace, module.event.test.hide)
+            ;
+          }
+        },
 
+        unbind: {
+          intent: function() {
+            module.verbose('Removing hide intent event from document');
+            if(hasTouch) {
+              $document
+                .off('touchstart' + eventNamespace)
+              ;
+            }
+            $document
+              .off('click' + eventNamespace)
+            ;
+          }
+        },
+
+        event: {
           test: {
             toggle: function(event) {
               module.determine.intent(event, module.toggle);
+              event.preventDefault();
               event.stopImmediatePropagation();
+            },
+            touch: function(event) {
+              module.determine.intent(event, function() {
+                if(event.type == 'touchstart') {
+                  module.timer = setTimeout(module.hide, 50);
+                }
+                else if(event.type == 'touchmove') {
+                  clearTimeout(module.timer);
+                }
+              });
+              event.stopPropagation();
             },
             hide: function(event) {
               module.determine.intent(event, module.hide);
@@ -141,6 +196,7 @@ $.fn.dropdown = function(parameters) {
                   module.verbose('Showing sub-menu', $currentMenu);
                   module.animate.show(false,  $currentMenu);
                 }, settings.delay.show * 2);
+                event.preventDefault();
               }
             },
 
@@ -164,16 +220,8 @@ $.fn.dropdown = function(parameters) {
                 value   = $choice.data(metadata.value) || text.toLowerCase()
               ;
               if( $choice.find(selector.menu).size() === 0 ) {
-                module.verbose('Adding active state to selected item');
-                $item
-                  .removeClass(className.active)
-                ;
-                $choice
-                  .addClass(className.active)
-                ;
                 module.determine.selectAction(text, value);
                 $.proxy(settings.onChange, element)(value, text);
-                event.stopPropagation();
               }
             }
 
@@ -188,12 +236,12 @@ $.fn.dropdown = function(parameters) {
         determine: {
           selectAction: function(text, value) {
             module.verbose('Determining action', settings.action);
-            if( $.isFunction( module[settings.action] ) ) {
-              module.verbose('Triggering preset action', settings.action);
-              module[ settings.action ](text, value);
+            if( $.isFunction( module.action[settings.action] ) ) {
+              module.verbose('Triggering preset action', settings.action, text, value);
+              module.action[ settings.action ](text, value);
             }
             else if( $.isFunction(settings.action) ) {
-              module.verbose('Triggering user action', settings.action);
+              module.verbose('Triggering user action', settings.action, text, value);
               settings.action(text, value);
             }
             else {
@@ -213,44 +261,47 @@ $.fn.dropdown = function(parameters) {
           }
         },
 
-        bind: {
-          intent: function() {
-            module.verbose('Binding hide intent event to document');
-            $document
-              .on(module.get.selectEvent(), module.event.test.hide)
-            ;
+        action: {
+
+          nothing: function() {},
+
+          hide: function() {
+            module.hide();
+          },
+
+          activate: function(text, value) {
+            value = value || text;
+            module.set.selected(value);
+            module.set.value(value);
+            module.hide();
+          },
+
+          /* Deprecated */
+          auto: function(text, value) {
+            value = value || text;
+            module.set.selected(value);
+            module.set.value(value);
+            module.hide();
+          },
+
+          /* Deprecated */
+          changeText: function(text, value) {
+            value = value || text;
+            module.set.selected(value);
+            module.hide();
+          },
+
+          /* Deprecated */
+          updateForm: function(text, value) {
+            value = value || text;
+            module.set.selected(value);
+            module.set.value(value);
+            module.hide();
           }
-        },
 
-        unbind: {
-          intent: function() {
-            module.verbose('Removing hide intent event from document');
-            $document
-              .off(module.get.selectEvent())
-            ;
-          }
-        },
-
-        nothing: function() {},
-
-        changeText: function(text, value) {
-          module.set.text(text);
-          module.hide();
-        },
-
-        updateForm: function(text, value) {
-          module.set.text(text);
-          module.set.value(value);
-          module.hide();
         },
 
         get: {
-          selectEvent: function() {
-            return (isTouchDevice)
-              ? 'touchstart'
-              : 'click'
-            ;
-          },
           text: function() {
             return $text.text();
           },
@@ -261,14 +312,25 @@ $.fn.dropdown = function(parameters) {
             var
               $selectedItem
             ;
-            value = value || $input.val();
-            $item
-              .each(function() {
-                if( $(this).data(metadata.value) == value ) {
-                  $selectedItem = $(this);
-                }
-              })
-            ;
+            value = value || module.get.value() || module.get.text();
+            if(value) {
+              $item
+                .each(function() {
+                  var
+                    $choice       = $(this),
+                    optionText    = $choice.data(metadata.text)  || $choice.text(),
+                    optionValue   = $choice.data(metadata.value) || optionText.toLowerCase()
+                  ;
+                  if( optionValue == value || optionText == value ) {
+                    $selectedItem = $(this);
+                    return false;
+                  }
+                })
+              ;
+            }
+            else {
+              value = module.get.text();
+            }
             return $selectedItem || false;
           }
         },
@@ -318,6 +380,9 @@ $.fn.dropdown = function(parameters) {
         },
 
         is: {
+          selection: function() {
+            return $module.hasClass(className.selection);
+          },
           visible: function($subMenu) {
             return ($subMenu)
               ? $subMenu.is(':animated, :visible')
@@ -334,7 +399,7 @@ $.fn.dropdown = function(parameters) {
 
         can: {
           click: function() {
-            return (isTouchDevice || settings.on == 'click');
+            return (hasTouch || settings.on == 'click');
           },
           show: function() {
             return !$module.hasClass(className.disabled);
@@ -588,8 +653,8 @@ $.fn.dropdown = function(parameters) {
               totalTime += data['Execution Time'];
             });
             title += ' ' + totalTime + 'ms';
-            if(dropdownSelector) {
-              title += ' \'' + dropdownSelector + '\'';
+            if(moduleSelector) {
+              title += ' \'' + moduleSelector + '\'';
             }
             if( (console.group !== undefined || console.table !== undefined) && performance.length > 0) {
               console.groupCollapsed(title);
@@ -609,7 +674,8 @@ $.fn.dropdown = function(parameters) {
         invoke: function(query, passedArguments, context) {
           var
             maxDepth,
-            found
+            found,
+            response
           ;
           passedArguments = passedArguments || queryArguments;
           context         = element         || context;
@@ -617,21 +683,46 @@ $.fn.dropdown = function(parameters) {
             query    = query.split(/[\. ]/);
             maxDepth = query.length - 1;
             $.each(query, function(depth, value) {
+              var camelCaseValue = (depth != maxDepth)
+                ? value + query[depth + 1].charAt(0).toUpperCase() + query[depth + 1].slice(1)
+                : query
+              ;
               if( $.isPlainObject( instance[value] ) && (depth != maxDepth) ) {
                 instance = instance[value];
               }
+              else if( $.isPlainObject( instance[camelCaseValue] ) && (depth != maxDepth) ) {
+                instance = instance[camelCaseValue];
+              }
               else if( instance[value] !== undefined ) {
                 found = instance[value];
+                return false;
+              }
+              else if( instance[camelCaseValue] !== undefined ) {
+                found = instance[camelCaseValue];
+                return false;
               }
               else {
                 module.error(error.method);
+                return false;
               }
             });
           }
           if ( $.isFunction( found ) ) {
-            return found.apply(context, passedArguments);
+            response = found.apply(context, passedArguments);
           }
-          return found || false;
+          else if(found !== undefined) {
+            response = found;
+          }
+          if($.isArray(invokedResponse)) {
+            invokedResponse.push(response);
+          }
+          else if(typeof invokedResponse == 'string') {
+            invokedResponse = [invokedResponse, response];
+          }
+          else if(response !== undefined) {
+            invokedResponse = response;
+          }
+          return found;
         }
       };
 
@@ -666,7 +757,7 @@ $.fn.dropdown.settings = {
   performance : true,
 
   on          : 'click',
-  action      : 'hide',
+  action      : 'activate',
 
   delay: {
     show: 200,
@@ -687,8 +778,8 @@ $.fn.dropdown.settings = {
   },
 
   metadata: {
-    text  : 'text',
-    value : 'value'
+    text    : 'text',
+    value   : 'value'
   },
 
   selector : {
@@ -702,7 +793,8 @@ $.fn.dropdown.settings = {
     active      : 'active',
     placeholder : 'default',
     disabled    : 'disabled',
-    visible     : 'visible'
+    visible     : 'visible',
+    selection   : 'selection'
   }
 
 };
